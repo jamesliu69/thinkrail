@@ -49,7 +49,7 @@ export function artifactPlaywrightConfig(
 ): PlaywrightTestConfig {
 	return {
 		testDir: ".",
-		testIgnore: "workflows/**",
+		testIgnore: ["workflows/**", "**/*.test.ts"],
 		grepInvert: /@agent|@dev-seam/,
 		fullyParallel: true,
 		workers: 1,

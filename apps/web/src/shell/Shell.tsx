@@ -53,6 +53,7 @@ import { UpdateInstallSurfaces, UpdateReadyButton, UpdateSettings, useUpdates } 
 import { AppShortcuts } from "./AppShortcuts";
 import { BrandLogo } from "./BrandLogo";
 import { toggleBottomPanel, toggleLeftSide, toggleRightSide } from "./chordActions";
+import { DroppedFolderHost } from "./DroppedFolderHost";
 import { JbcentralQuotaTopbar } from "./JbcentralQuotaTopbar";
 import { LayoutSettings } from "./LayoutSettings";
 import { useLocalLayoutState } from "./layoutState";
@@ -309,6 +310,7 @@ export function Shell() {
 				onToggleProjectsHome={homeProjects.toggle}
 				hasUpdateSettings={updates !== null}
 			/>
+			<DroppedFolderHost />
 			<NotificationPermissionPrompt />
 			<Toaster />
 			<UpdateInstallSurfaces updates={updates} />

@@ -43,6 +43,7 @@ import {
 	PI_PACKAGES_PROTOCOL_VERSION,
 	PLAN_REVIEW_SUBAGENT_PROTOCOL_VERSION,
 	PLAN_SUMMARY_GENERATION_PROTOCOL_VERSION,
+	PROJECT_LOCATE_PROTOCOL_VERSION,
 	PROJECT_RENAME_PROTOCOL_VERSION,
 	PROJECT_TEMPLATE_PREVIEW_PROTOCOL_VERSION,
 	PROJECT_TRUST_PROTOCOL_VERSION,
@@ -586,8 +587,14 @@ test("custom endpoints are pinned to v101 and own only custom-* providers", () =
 
 test("extension settings are pinned to v105", () => {
 	expect(EXTENSION_SETTINGS_PROTOCOL_VERSION).toBe(105);
-	expect(PROTOCOL_VERSION).toBe(105);
+	expect(PROTOCOL_VERSION).toBeGreaterThanOrEqual(EXTENSION_SETTINGS_PROTOCOL_VERSION);
 	expect(DEFAULT_CONFIG.extensionSettings).toEqual({});
+});
+
+test("project folder location is pinned to v106", () => {
+	expect(PROJECT_LOCATE_PROTOCOL_VERSION).toBe(106);
+	expect(PROTOCOL_VERSION).toBeGreaterThanOrEqual(PROJECT_LOCATE_PROTOCOL_VERSION);
+	expect(WS_METHODS.projectLocateFolder).toBe("project.locateFolder");
 });
 
 test("ask_user_question discuss answers are pinned to v105, after background workspace creation", () => {

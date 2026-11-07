@@ -16,12 +16,20 @@ const projectOpenIntents = createLatestOperation();
 
 export type OpenedProjectIntent = { setup: boolean };
 
+export interface EnterHostPathHint {
+	prefilledPath?: string;
+	reason?: string | null;
+}
+
+export type ProjectOpenIntent = () => boolean;
+
 export function useOpenProject(
 	onOpened: (project: Project, intent: OpenedProjectIntent) => void | Promise<void>,
 ): {
-	openProject: (rawPath: string) => Promise<void>;
+	beginOpenProjectIntent: () => ProjectOpenIntent;
+	openProject: (rawPath: string, intent?: ProjectOpenIntent) => Promise<void>;
 	pickAndOpen: () => Promise<void>;
-	enterHostPath: () => void;
+	enterHostPath: (hint?: EnterHostPathHint, intent?: ProjectOpenIntent) => void;
 	startNewProject: () => void;
 	cloneRepository: (() => void) | undefined;
 	dialogs: ReactNode;
@@ -32,7 +40,10 @@ export function useOpenProject(
 	const [initTarget, setInitTarget] = useState<string | null>(null);
 	const [creating, setCreating] = useState(false);
 	const [openError, setOpenError] = useState<string | null>(null);
-	const [pathEntry, setPathEntry] = useState<{ reason: string | null } | null>(null);
+	const [pathEntry, setPathEntry] = useState<{
+		reason: string | null;
+		prefilledPath?: string;
+	} | null>(null);
 
 	const adopt = async (
 		project: Project,
@@ -46,24 +57,25 @@ export function useOpenProject(
 	};
 
 	const openProjectForIntent = async (rawPath: string, isCurrent: () => boolean) => {
-		const trimmed = rawPath.trim();
-		if (!trimmed || !isCurrent()) return;
+		if (rawPath === "" || !isCurrent()) return;
 		try {
-			const project = await getTransport().request("project.open", { path: trimmed });
+			const project = await getTransport().request("project.open", { path: rawPath });
 			if (!isCurrent()) return;
 			await adopt(project, isCurrent);
 			if (!isCurrent()) return;
 		} catch (err) {
 			if (!isCurrent()) return;
-			const failure = await explainOpenFailure(err, trimmed, t);
+			const failure = await explainOpenFailure(err, rawPath, t);
 			if (!isCurrent()) return;
-			if (failure.kind === "initable") setInitTarget(trimmed);
+			if (failure.kind === "initable") setInitTarget(rawPath);
 			else setOpenError(failure.text);
 		}
 	};
 
-	const openProject = (rawPath: string) =>
-		openProjectForIntent(rawPath, projectOpenIntents.begin());
+	const beginOpenProjectIntent = () => projectOpenIntents.begin();
+
+	const openProject = (rawPath: string, intent?: ProjectOpenIntent) =>
+		openProjectForIntent(rawPath, intent ?? projectOpenIntents.begin());
 
 	const initProject = async (path: string) => {
 		const isCurrent = projectOpenIntents.begin();
@@ -89,9 +101,14 @@ export function useOpenProject(
 			}
 		: undefined;
 
-	const enterHostPath = () => {
-		projectOpenIntents.begin();
-		setPathEntry({ reason: null });
+	const enterHostPath = (hint?: EnterHostPathHint, intent?: ProjectOpenIntent) => {
+		const isCurrent = intent ?? projectOpenIntents.begin();
+		if (!isCurrent()) return;
+		const next: { reason: string | null; prefilledPath?: string } = {
+			reason: hint?.reason ?? null,
+		};
+		if (hint?.prefilledPath !== undefined) next.prefilledPath = hint.prefilledPath;
+		setPathEntry(next);
 	};
 
 	const pickAndOpen = async () => {
@@ -148,6 +165,9 @@ export function useOpenProject(
 			<OpenProjectPathDialog
 				open={pathEntry !== null}
 				reason={pathEntry?.reason ?? null}
+				{...(pathEntry?.prefilledPath !== undefined
+					? { initialPath: pathEntry.prefilledPath }
+					: {})}
 				onOpenChange={(open) => {
 					if (!open) setPathEntry(null);
 				}}
@@ -165,5 +185,13 @@ export function useOpenProject(
 		</>
 	);
 
-	return { openProject, pickAndOpen, enterHostPath, startNewProject, cloneRepository, dialogs };
+	return {
+		beginOpenProjectIntent,
+		openProject,
+		pickAndOpen,
+		enterHostPath,
+		startNewProject,
+		cloneRepository,
+		dialogs,
+	};
 }

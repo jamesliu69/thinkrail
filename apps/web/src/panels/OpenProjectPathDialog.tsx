@@ -9,22 +9,27 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@thinkrail/ui/dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function OpenProjectPathDialog({
 	open,
 	reason,
+	initialPath,
 	onOpenChange,
 	onSubmit,
 }: {
 	open: boolean;
 	reason: string | null;
+	initialPath?: string;
 	onOpenChange: (open: boolean) => void;
 	onSubmit: (path: string) => void;
 }) {
 	const t = useT();
 	const [path, setPath] = useState("");
-	const finalPath = path.trim();
+
+	useEffect(() => {
+		if (open && initialPath !== undefined) setPath(initialPath);
+	}, [open, initialPath]);
 
 	const setOpen = (next: boolean) => {
 		if (!next) setPath("");
@@ -58,8 +63,8 @@ export function OpenProjectPathDialog({
 					className="flex flex-col gap-12"
 					onSubmit={(event) => {
 						event.preventDefault();
-						if (!finalPath) return;
-						onSubmit(finalPath);
+						if (path === "") return;
+						onSubmit(path);
 						setOpen(false);
 					}}
 				>
@@ -83,7 +88,7 @@ export function OpenProjectPathDialog({
 						<Button variant="outline" onClick={() => setOpen(false)}>
 							{t("common.cancel")}
 						</Button>
-						<Button type="submit" data-testid="open-project-path-submit" disabled={!finalPath}>
+						<Button type="submit" data-testid="open-project-path-submit" disabled={path === ""}>
 							{t("panels.openProjectPath.submit")}
 						</Button>
 					</DialogFooter>
