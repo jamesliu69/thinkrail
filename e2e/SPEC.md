@@ -424,10 +424,30 @@ and the restart spec's own) receives `SHELL` pointing at the lane's fixture `log
 Central/editor stubs: `resolveShellEnv()` always probes the login shell at boot and merges its PATH in, so the
 fixture answers the probe (recognized by shared's `LOGIN_ENV_MARKER`) with that marker and the same hermetic
 PATH the host was given, and otherwise execs the runner's real shell, keeping terminal specs on a genuine
-shell. That hermetic PATH also carries the runner-resolved `git` directory ahead of the POSIX
-defaults: the host spawns `git` by name for project open and repository status, and a Windows
-install never lives under `/usr/bin`, so the POSIX defaults alone leave every project-dependent
-spec stuck at the init-repository dialog. Without the login-shell fixture the probe would merge
+shell.
+
+隔離 PATH 在 fixture fake-bin 與 POSIX 預設目錄之間只加入 Git 代理目錄，避免把 Git 安裝目錄中的
+真實 `central`、`pi` 或 editor 一併暴露給宿主。宿主、terminal 與 pi SDK 仍可用 `git` 名稱執行
+runner 選定的 Git。POSIX 代理透過 `exec` 傳遞原始參數；Windows 代理使用既有 Bun 編譯成 `git.exe`，
+不經 shell 傳遞 argv，繼承標準輸入、輸出與錯誤並保留 exit code。Windows 代理內建 `--no-orphans`，
+結束代理時會清除其 Git 子程序，也停用執行時自動載入 `.env` 與 `bunfig.toml`。
+
+代理使用 OS 帳號 home 下的 `.thinkrail-e2e-git` 私有不可變快取，不採用可由環境變數變更的
+HOME 或 TEMP。舊的系統暫存目錄 `thinkrail-e2e-git` 完全不再讀寫，既有內容保留不遷移。
+POSIX 逐層以 `lstat` 檢查 home 的所有祖先，僅接受目前 uid 或 root 擁有、不可供其他身分
+寫入的目錄，受 sticky bit 保護的祖先除外；快取目錄必須屬於目前 uid 且禁止 group/other
+存取。Windows 以 OS 帳號 home 為信任根，前提是該 profile 由作業系統存取控制保護；標準
+Node API 無法驗證自訂 Windows ACL，本 harness 不另外啟動 ACL 查詢。所有平台都拒絕 home
+與快取子路徑中的 symbolic link/junction，且 cache hit 必須再次驗證目錄與 Git 執行檔，無法
+確認時直接失敗，不修正權限、不清除未知目錄。
+
+快取鍵包含平台、代理原始碼、編譯參數及 Git/Bun 執行檔的路徑、大小與修改時間。它不位於
+lane 資料目錄內，因此 webServer 啟動後的 global setup 清除不會移除代理。每次建立使用獨立
+staging，成功後才原子發布整個目錄；平行建立只重用已完成且通過信任檢查的快取。本次 staging
+會在結束時清除；中斷留下的 staging 不會被重用，下次會重新建立。已完成的快取保留供後續
+執行使用，舊版本快取與中斷殘留需由帳號擁有者回收，系統暫存清理不會回收新的 home 快取。
+
+Without the login-shell fixture the probe would merge
 developer-machine directories into the hermetic PATH (and import the
 developer's login environment) and a spec could reach a real `central`, `pi`, or editor. (The `.bun/bin` directory name is historical: it once marked the PATH as complete to a short-circuit
 that no longer exists.) Folder selection comes from one picker control file across the source,
