@@ -106,9 +106,10 @@ bootstrap it into one so it can be opened.
 then run one bounded breadth-first search for same-named directories. Roots come from the host's own
 context first — parent folders of recent projects, the account home (deeper, 4), conventional code
 containers, and on Windows every ready drive root (else `/`); A:/B: and the POSIX mount roots
-`/Volumes`, `/mnt`, and `/media` are never traversed. The name must be a single segment: empty, `.`,
-`..`, separators, control characters, over-length, and Windows-reserved punctuation or trailing
-dots/spaces reject with `LOCATE_INVALID_NAME` before any I/O. The search shares one deadline (1500 ms)
+`/Volumes`, `/mnt`, and `/media` are never traversed. The name is used verbatim rather than trimmed,
+preserving legal POSIX leading or trailing whitespace. It must be a single segment: empty, `.`, `..`,
+separators, control characters, over-length, and Windows-reserved punctuation or trailing dots/spaces
+reject with `LOCATE_INVALID_NAME` before any I/O. The search shares one deadline (1500 ms)
 and one visited-directory budget (25 000) across all roots, never follows symlinked directories, and
 skips hidden and noisy folders (node_modules, .git, dist, build, vendor, caches, OS and package
 directories). Results keep discovery order, dedupe by resolved path, and cap at 8; when the budget

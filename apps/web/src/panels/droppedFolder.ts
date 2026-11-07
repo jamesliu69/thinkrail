@@ -13,6 +13,6 @@ export function droppedFolderName(summary: DroppedItemsSummary): string | null {
 	if (summary.entries.length !== 1) return null;
 	const [entry] = summary.entries;
 	if (!entry?.isDirectory) return null;
-	const name = entry.name.trim();
+	const name = entry.name;
 	return name === "" ? null : name;
 }

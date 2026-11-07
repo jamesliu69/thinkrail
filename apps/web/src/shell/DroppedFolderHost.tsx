@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { hasLayer, MODAL_LAYER_SELECTOR } from "../lib";
 import { type DroppedItemsSummary, droppedFolderName } from "../panels/droppedFolder";
 import { LocatedFoldersDialog } from "../panels/LocatedFoldersDialog";
-import { useOpenProject } from "../panels/useOpenProject";
+import { type ProjectOpenIntent, useOpenProject } from "../panels/useOpenProject";
 import { goToProjectHome } from "../panels/workspaceActions";
 import { selectSupportsProjectLocateFolder, useAppStore } from "../store";
 import { getTransport } from "../transport";
@@ -31,22 +31,29 @@ export function DroppedFolderHost() {
 	const t = useT();
 	const supportsLocate = useAppStore(selectSupportsProjectLocateFolder);
 	const [dragActive, setDragActive] = useState(false);
-	const [chooser, setChooser] = useState<{ folderName: string; matches: string[] } | null>(null);
-	const { openProject, enterHostPath, dialogs } = useOpenProject((project) => {
-		goToProjectHome(project.id);
-	});
+	const [chooser, setChooser] = useState<{
+		folderName: string;
+		matches: string[];
+		intent: ProjectOpenIntent;
+	} | null>(null);
+	const { beginOpenProjectIntent, openProject, enterHostPath, dialogs } = useOpenProject(
+		(project) => {
+			goToProjectHome(project.id);
+		},
+	);
 	const dragDepthRef = useRef(0);
-	const dropSeqRef = useRef(0);
 
-	const handleFolderDrop = async (name: string) => {
-		dropSeqRef.current += 1;
-		const seq = dropSeqRef.current;
+	const handleFolderDrop = async (name: string, intent: ProjectOpenIntent) => {
+		if (!intent()) return;
 		setChooser(null);
 		if (!supportsLocate) {
-			enterHostPath({
-				prefilledPath: name,
-				reason: t("panels.locatedFolders.locateFailed", { name }),
-			});
+			enterHostPath(
+				{
+					prefilledPath: name,
+					reason: t("panels.locatedFolders.locateFailed", { name }),
+				},
+				intent,
+			);
 			return;
 		}
 		try {
@@ -55,26 +62,32 @@ export function DroppedFolderHost() {
 				{ name },
 				{ timeoutMs: LOCATE_TIMEOUT_MS },
 			);
-			if (seq !== dropSeqRef.current) return;
+			if (!intent()) return;
 			if (matches.length === 0) {
-				enterHostPath({
-					prefilledPath: name,
-					reason: t("panels.openProjectPath.locateMissed", { name }),
-				});
+				enterHostPath(
+					{
+						prefilledPath: name,
+						reason: t("panels.openProjectPath.locateMissed", { name }),
+					},
+					intent,
+				);
 				return;
 			}
 			if (matches.length === 1) {
 				const [match] = matches;
-				if (match) await openProject(match);
+				if (match) await openProject(match, intent);
 				return;
 			}
-			setChooser({ folderName: name, matches });
+			setChooser({ folderName: name, matches, intent });
 		} catch {
-			if (seq !== dropSeqRef.current) return;
-			enterHostPath({
-				prefilledPath: name,
-				reason: t("panels.locatedFolders.locateFailed", { name }),
-			});
+			if (!intent()) return;
+			enterHostPath(
+				{
+					prefilledPath: name,
+					reason: t("panels.locatedFolders.locateFailed", { name }),
+				},
+				intent,
+			);
 		}
 	};
 
@@ -111,13 +124,12 @@ export function DroppedFolderHost() {
 		const onDrop = (event: DragEvent) => {
 			if (!dragHasFiles(event)) return;
 			resetDrag();
-			if (event.defaultPrevented) return;
-			event.preventDefault();
-			if (hasLayer(document, MODAL_LAYER_SELECTOR)) return;
+			if (event.defaultPrevented || hasLayer(document, MODAL_LAYER_SELECTOR)) return;
 			if (!event.dataTransfer) return;
 			const name = droppedFolderName(summarizeDrop(event.dataTransfer));
 			if (!name) return;
-			void handleDropRef.current(name);
+			event.preventDefault();
+			void handleDropRef.current(name, beginOpenProjectIntent());
 		};
 
 		const onBlur = () => resetDrag();
@@ -160,12 +172,12 @@ export function DroppedFolderHost() {
 				matches={chooser?.matches ?? []}
 				onSelect={(path) => {
 					setChooser(null);
-					void openProject(path);
+					void openProject(path, chooser?.intent);
 				}}
 				onEnterPath={() => {
 					const current = chooser;
 					setChooser(null);
-					if (current) enterHostPath({ prefilledPath: current.folderName });
+					if (current) enterHostPath({ prefilledPath: current.folderName }, current.intent);
 				}}
 				onOpenChange={(open) => {
 					if (!open) setChooser(null);

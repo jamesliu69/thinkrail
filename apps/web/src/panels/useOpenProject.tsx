@@ -21,12 +21,15 @@ export interface EnterHostPathHint {
 	reason?: string | null;
 }
 
+export type ProjectOpenIntent = () => boolean;
+
 export function useOpenProject(
 	onOpened: (project: Project, intent: OpenedProjectIntent) => void | Promise<void>,
 ): {
-	openProject: (rawPath: string) => Promise<void>;
+	beginOpenProjectIntent: () => ProjectOpenIntent;
+	openProject: (rawPath: string, intent?: ProjectOpenIntent) => Promise<void>;
 	pickAndOpen: () => Promise<void>;
-	enterHostPath: (hint?: EnterHostPathHint) => void;
+	enterHostPath: (hint?: EnterHostPathHint, intent?: ProjectOpenIntent) => void;
 	startNewProject: () => void;
 	cloneRepository: (() => void) | undefined;
 	dialogs: ReactNode;
@@ -54,24 +57,25 @@ export function useOpenProject(
 	};
 
 	const openProjectForIntent = async (rawPath: string, isCurrent: () => boolean) => {
-		const trimmed = rawPath.trim();
-		if (!trimmed || !isCurrent()) return;
+		if (rawPath === "" || !isCurrent()) return;
 		try {
-			const project = await getTransport().request("project.open", { path: trimmed });
+			const project = await getTransport().request("project.open", { path: rawPath });
 			if (!isCurrent()) return;
 			await adopt(project, isCurrent);
 			if (!isCurrent()) return;
 		} catch (err) {
 			if (!isCurrent()) return;
-			const failure = await explainOpenFailure(err, trimmed, t);
+			const failure = await explainOpenFailure(err, rawPath, t);
 			if (!isCurrent()) return;
-			if (failure.kind === "initable") setInitTarget(trimmed);
+			if (failure.kind === "initable") setInitTarget(rawPath);
 			else setOpenError(failure.text);
 		}
 	};
 
-	const openProject = (rawPath: string) =>
-		openProjectForIntent(rawPath, projectOpenIntents.begin());
+	const beginOpenProjectIntent = () => projectOpenIntents.begin();
+
+	const openProject = (rawPath: string, intent?: ProjectOpenIntent) =>
+		openProjectForIntent(rawPath, intent ?? projectOpenIntents.begin());
 
 	const initProject = async (path: string) => {
 		const isCurrent = projectOpenIntents.begin();
@@ -97,8 +101,9 @@ export function useOpenProject(
 			}
 		: undefined;
 
-	const enterHostPath = (hint?: EnterHostPathHint) => {
-		projectOpenIntents.begin();
+	const enterHostPath = (hint?: EnterHostPathHint, intent?: ProjectOpenIntent) => {
+		const isCurrent = intent ?? projectOpenIntents.begin();
+		if (!isCurrent()) return;
 		const next: { reason: string | null; prefilledPath?: string } = {
 			reason: hint?.reason ?? null,
 		};
@@ -180,5 +185,13 @@ export function useOpenProject(
 		</>
 	);
 
-	return { openProject, pickAndOpen, enterHostPath, startNewProject, cloneRepository, dialogs };
+	return {
+		beginOpenProjectIntent,
+		openProject,
+		pickAndOpen,
+		enterHostPath,
+		startNewProject,
+		cloneRepository,
+		dialogs,
+	};
 }

@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { droppedFolderName } from "./droppedFolder";
 
 describe("droppedFolderName", () => {
-	test("returns the trimmed name when the drop is exactly one directory", () => {
+	test("preserves the exact name when the drop is exactly one directory", () => {
 		expect(
 			droppedFolderName({
 				itemCount: 1,
 				entries: [{ name: " my-project ", isDirectory: true }],
 			}),
-		).toBe("my-project");
+		).toBe(" my-project ");
 	});
 
 	test("a single dropped file is not a folder open", () => {
@@ -64,9 +64,9 @@ describe("droppedFolderName", () => {
 		expect(droppedFolderName({ itemCount: 0, entries: null })).toBeNull();
 	});
 
-	test("a whitespace-only folder name is ignored", () => {
-		expect(
-			droppedFolderName({ itemCount: 1, entries: [{ name: "  ", isDirectory: true }] }),
-		).toBeNull();
+	test("a whitespace-only POSIX folder name is preserved", () => {
+		expect(droppedFolderName({ itemCount: 1, entries: [{ name: "  ", isDirectory: true }] })).toBe(
+			"  ",
+		);
 	});
 });

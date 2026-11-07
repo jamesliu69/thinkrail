@@ -85,6 +85,9 @@ across CI machines, each booting its own artifact host. A future launcher or
 deployment adds another host adapter for this same suite, never copied feature specs; shared behavior is
 therefore proven through every composition root.
 
+Windows host 的 `PATH` 僅包含 fake-bin 與 `System32`。fake-bin 中編譯出的 `git.exe` 代理器以絕對路徑
+呼叫 runner 的 Git，讓 Git 安裝目錄及其中相鄰執行檔不會進入 host 的命令搜尋路徑。
+
 The focused `compaction.live` probe exercises manual compaction, continuation and restored context
 through a real provider. It lowers only the disposable lane's `keepRecentTokens` and disables automatic
 compaction to keep the request small and deterministic, restoring the settings bytes in `finally`.

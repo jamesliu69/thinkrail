@@ -84,9 +84,10 @@ function hasControlCharacter(value: string): boolean {
 	return false;
 }
 
+/** 保留資料夾名稱原文，並拒絕無法作為單一目錄名稱的輸入。 */
 export function validateFolderName(raw: string): string {
 	if (typeof raw !== "string") invalidName("Enter a folder name.");
-	const name = raw.trim();
+	const name = raw;
 	if (name === "" || name === "." || name === "..")
 		invalidName("Enter a folder name, not a relative path.");
 	if (name.length > 200) invalidName("That folder name is too long.");
@@ -143,6 +144,7 @@ export async function locateSearchRoots(
 	return [...byKey.values()];
 }
 
+/** 依各搜尋根目錄可用的剩餘深度，以共用預算尋找同名目錄。 */
 export async function searchFoldersByName(
 	roots: readonly LocateSearchRoot[],
 	name: string,
@@ -152,7 +154,7 @@ export async function searchFoldersByName(
 	const maxResults = options?.maxResults ?? LOCATE_MAX_RESULTS;
 	const matches: string[] = [];
 	const matchKeys = new Set<string>();
-	const seenDirs = new Set<string>();
+	const seenDirs = new Map<string, number>();
 	let visitedDirs = 0;
 
 	for (const { root, depth: maxDepth } of roots) {
@@ -167,8 +169,10 @@ export async function searchFoldersByName(
 				if (matches.length >= maxResults || visitedDirs >= LOCATE_MAX_VISITED_DIRS) break;
 				if (Date.now() > deadline) break;
 				const key = folderKey(dir);
-				if (seenDirs.has(key)) continue;
-				seenDirs.add(key);
+				const remainingDepth = maxDepth - depth;
+				const previousDepth = seenDirs.get(key);
+				if (previousDepth !== undefined && previousDepth >= remainingDepth) continue;
+				seenDirs.set(key, remainingDepth);
 				visitedDirs += 1;
 				let entries: Dirent[];
 				try {

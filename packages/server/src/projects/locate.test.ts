@@ -31,12 +31,29 @@ function project(path: string): { path: string } {
 }
 
 test("validateFolderName accepts a plain folder name", () => {
-	expect(validateFolderName("  my-project ")).toBe("my-project");
+	expect(validateFolderName("my-project")).toBe("my-project");
 	expect(validateFolderName("a b.c")).toBe("a b.c");
 });
 
+if (process.platform === "win32") {
+	test("validateFolderName does not trim Windows-invalid trailing spaces", () => {
+		expect(() => validateFolderName("my-project ")).toThrow(CodedError);
+	});
+} else {
+	test("validateFolderName preserves legal leading and trailing POSIX spaces", async () => {
+		const name = " my-project ";
+		const found = dir("scan", name);
+		const validated = validateFolderName(name);
+
+		expect(validated).toBe(name);
+		expect(
+			await searchFoldersByName([{ root: join(fixture, "scan"), depth: 1 }], validated),
+		).toEqual([found]);
+	});
+}
+
 test("validateFolderName refusals carry LOCATE_INVALID_NAME", () => {
-	for (const bad of ["", "   ", ".", "..", "a/b", "a\\b", "a\u0000b", "x".repeat(201)]) {
+	for (const bad of ["", ".", "..", "a/b", "a\\b", "a\u0000b", "x".repeat(201)]) {
 		try {
 			validateFolderName(bad);
 			expect.unreachable();
@@ -56,6 +73,7 @@ if (process.platform === "win32") {
 		expect(() => validateFolderName("a?b")).toThrow(CodedError);
 		expect(() => validateFolderName("a*b")).toThrow(CodedError);
 		expect(() => validateFolderName("name.")).toThrow(CodedError);
+		expect(() => validateFolderName("name ")).toThrow(CodedError);
 	});
 }
 
@@ -180,6 +198,22 @@ test("searchFoldersByName dedupes folders reachable through two roots", async ()
 	);
 
 	expect(matches).toEqual([shared]);
+});
+
+test("searchFoldersByName revisits an overlapping root when it has more remaining depth", async () => {
+	const root = dir("scan");
+	const overlappingRoot = dir("scan", "overlap");
+	const expected = dir("scan", "overlap", "one", "needle");
+
+	const matches = await searchFoldersByName(
+		[
+			{ root, depth: 2 },
+			{ root: overlappingRoot, depth: 3 },
+		],
+		"needle",
+	);
+
+	expect(matches).toEqual([expected]);
 });
 
 test("searchFoldersByName stops at maxResults", async () => {

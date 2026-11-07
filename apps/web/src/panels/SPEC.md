@@ -466,18 +466,31 @@ same last-intent fence as opening a local project, without starting a chat. A la
 newer open-project selection.
 
 **Dragging a folder onto the window.** The shell's `DroppedFolderHost` turns a drag of exactly one
-directory anywhere on the window into an open gesture; a file, several items, or a mixed drag is
-silently ignored — no dialog, no navigation, and no `preventDefault`, so anything else that consumes
-the drop first (a composer image drop, a `defaultPrevented` event) keeps it. While any modal layer is
-open the drag is not claimed at all, so the browser's native refuse-drop cursor answers it. The host
-folder name is located via `project.locateFolder` when the host supports it: a single match opens
-straight away, several open a **`LocatedFoldersDialog`** chooser, and zero matches, a timeout, an
+directory anywhere on the window into an open gesture; several items and mixed drops are ignored.
+While a modal layer is open or an earlier consumer has prevented the event, the shell does not claim
+the drag or drop. On `drop`, a plain file is not handled or cancelled by ThinkRail. In `dragenter` and
+`dragover`, HTML's protected drag-data mode exposes item kinds and types but not the payload; files and
+directories both have kind `file`, and `webkitGetAsEntry()` / `getAsFileSystemHandle()` cannot identify
+the entry until `drop` ([HTML Standard](https://html.spec.whatwg.org/multipage/dnd.html#concept-dnd-p),
+[Entries API](https://wicg.github.io/entries-api/#drag-and-drop), [MDN `webkitGetAsEntry()`](https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/webkitGetAsEntry),
+[MDN `getAsFileSystemHandle()`](https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/getAsFileSystemHandle)).
+So, without breaking native directory drops, the shell must accept a `Files` `dragover` before it can
+know whether the item is a folder; plain-file drags can therefore show the same overlay and their
+`dragover` is cancelled. An unconsumed native plain-file drop retains the browser's default handling,
+which may open the dropped file ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop));
+cancelling it would claim a non-folder drop, contrary to this module's contract. Synthetic `DragEvent`
+tests prove ThinkRail does not claim the `drop`, not the OS drag's browser default. This browser limitation
+prevents promising that an unconsumed plain-file drag is never claimed at all.
+The host folder name is located via `project.locateFolder` when the host supports it: a single match
+opens straight away, several open a **`LocatedFoldersDialog`** chooser, and zero matches, a timeout, an
 error, or an older host fall back to the **Open project from host path** dialog pre-filled with the
 dropped name and a reason naming what happened. Opening through this gesture lands on the project's
-Welcome like any other open — it never starts a setup chat. A second drop supersedes an in-flight one
-before it can open, choose, or raise a dialog. The pure drop summary decision lives in
-`droppedFolder.ts` (testable without a DOM `DragEvent`); `useOpenProject.enterHostPath` carries the
-optional `prefilledPath`/`reason` hint every fallback uses.
+Welcome like any other open — it never starts a setup chat. A recognized drop starts the same latest
+project-open intent as manual opening before location begins; a later folder drop or manual open
+invalidates it before it can open, choose, or raise a dialog. The intent travels through the location
+request, chooser, and fallback. The pure drop summary decision lives in `droppedFolder.ts` (testable
+without a DOM `DragEvent`); `useOpenProject.enterHostPath` carries the optional `prefilledPath`/`reason`
+hint every fallback uses.
 
 **Cold-start onboarding wizard.** `OnboardingWizard` replaces the Welcome cards only on a true cold start:
 the host supports `ONBOARDING_PROTOCOL_VERSION`, `AppConfig.onboardingDismissed` is false, there are no
