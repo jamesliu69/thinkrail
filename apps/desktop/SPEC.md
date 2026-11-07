@@ -282,9 +282,9 @@ Linux is not planned: `hiddenInset` is a no-op under GTK and `hidden` removes de
 WM-provided resize handles. Fully custom macOS chrome (`titleBarStyle: "hidden"` with drawn traffic lights)
 was rejected because the platform provides real ones.
 
-**Geometry contract.** The desktop publishes three CSS custom properties on `<html>`: the two inset
-properties plus `--window-chrome-drag-region` (`drag` | `no-drag`), which tells the page whether its
-header is the title bar. The drag flag rides only the initial preload global (it is a per-policy constant);
+**Geometry contract.** The desktop publishes two inset CSS custom properties and the
+`data-window-chrome-drag` attribute on `<html>` to indicate whether the header is the title bar.
+The drag flag rides only the initial preload global (it is a per-policy constant);
 geometry updates arrive as `windowChromeChanged { insetLeft, insetRight }`. The web consumes the properties
 with `0px` fallbacks, so a browser-hosted client and the neutral E2E-host window (`about:blank`, no
 preload) are unaffected and the *web client still has no desktop branch*. The preload validates geometry,
@@ -300,10 +300,13 @@ neutral E2E-host window (`THINKRAIL_DESKTOP_E2E_HOST=1`) keeps the default nativ
 nothing.
 
 **Dragging.** The desktop's only contribution is the `drag` flag: the web header's `window-drag` utility
-resolves to `-webkit-app-region: drag` only when `--window-chrome-drag-region` says so, and Electrobun's
-own injected preload rewrites app-region declarations from same-origin stylesheets into a mirrored custom
-property it hit-tests against on `mousedown`. A decorated window (Linux, the neutral window)
-publishes `no-drag` and so never acquires a second, partial drag strip.
+uses a literal `app-region: drag` only when the root attribute is present. WebView2 156 computes the
+previous `app-region: var(...)` declaration as `none`, leaving Electrobun's raw-input mover in charge and
+preventing Windows Snap and title-bar double-clicks. Electrobun's own injected preload rewrites
+app-region declarations from same-origin stylesheets into a mirrored custom property it hit-tests against on
+`mousedown`. Keep the opt-in declaration nested with the drag utility: with Electrobun 2.0.5, placing it
+late in the built stylesheet left it out of the mirror in a real WebView2 build. A decorated window (Linux,
+the neutral window) leaves the attribute absent and so never acquires a second, partial drag strip.
 
 **Title-bar double-click.** The webview covers the native strip, so `NSWindow` never sees a header
 double-click, and Electrobun 2.0.5 implements app-region dragging only. Its native move uses pass-through
