@@ -424,7 +424,11 @@ and the restart spec's own) receives `SHELL` pointing at the lane's fixture `log
 Central/editor stubs: `resolveShellEnv()` always probes the login shell at boot and merges its PATH in, so the
 fixture answers the probe (recognized by shared's `LOGIN_ENV_MARKER`) with that marker and the same hermetic
 PATH the host was given, and otherwise execs the runner's real shell, keeping terminal specs on a genuine
-shell. Without it the probe would merge developer-machine directories into the hermetic PATH (and import the
+shell. That hermetic PATH also carries the runner-resolved `git` directory ahead of the POSIX
+defaults: the host spawns `git` by name for project open and repository status, and a Windows
+install never lives under `/usr/bin`, so the POSIX defaults alone leave every project-dependent
+spec stuck at the init-repository dialog. Without the login-shell fixture the probe would merge
+developer-machine directories into the hermetic PATH (and import the
 developer's login environment) and a spec could reach a real `central`, `pi`, or editor. (The `.bun/bin` directory name is historical: it once marked the PATH as complete to a short-circuit
 that no longer exists.) Folder selection comes from one picker control file across the source,
 binary, and desktop hosts: plain content returns a path and an `error:<message>` directive forces a

@@ -1,21 +1,42 @@
 import { chmodSync, existsSync, writeFileSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LOGIN_ENV_MARKER } from "@thinkrail/shared/shellEnv";
 
-export function resolveBunExecutable(env: NodeJS.ProcessEnv = process.env): string {
-	const name = process.platform === "win32" ? "bun.exe" : "bun";
-	const executable = (env.PATH ?? "")
+function resolveFromPath(name: string, env: NodeJS.ProcessEnv): string | undefined {
+	return (env.PATH ?? "")
 		.split(delimiter)
 		.filter(Boolean)
 		.map((directory) => join(directory, name))
 		.find(existsSync);
+}
+
+export function resolveBunExecutable(env: NodeJS.ProcessEnv = process.env): string {
+	const name = process.platform === "win32" ? "bun.exe" : "bun";
+	const executable = resolveFromPath(name, env);
 	if (!executable) throw new Error("bun executable not found for the e2e host");
 	return executable;
 }
 
-export function hermeticE2ePath(fakeBinDir: string): string {
-	return [fakeBinDir, "/usr/bin", "/bin", "/usr/sbin", "/sbin"].join(delimiter);
+export function resolveGitExecutable(env: NodeJS.ProcessEnv = process.env): string {
+	const name = process.platform === "win32" ? "git.exe" : "git";
+	const executable = resolveFromPath(name, env);
+	if (!executable) throw new Error("git executable not found for the e2e host");
+	return executable;
+}
+
+export function hermeticE2ePath(fakeBinDir: string, env: NodeJS.ProcessEnv = process.env): string {
+	// The resolved git directory keeps the host's `git` spawnable where the POSIX defaults
+	// don't reach it — Windows installs live in Program Files, never under /usr/bin. The stub
+	// dir stays first so `gh`, `code`, and the login shell keep winning.
+	return [
+		fakeBinDir,
+		dirname(resolveGitExecutable(env)),
+		"/usr/bin",
+		"/bin",
+		"/usr/sbin",
+		"/sbin",
+	].join(delimiter);
 }
 
 export function hermeticE2eShell(fakeBinDir: string): string {
