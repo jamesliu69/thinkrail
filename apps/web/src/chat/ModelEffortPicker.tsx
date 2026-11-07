@@ -20,6 +20,7 @@ import {
 } from "@remixicon/react";
 import {
 	type ModelDefault,
+	type SessionSpeed,
 	sameModel,
 	type ThinkingLevel,
 	type WireModel,
@@ -69,6 +70,7 @@ import {
 	rowValue,
 	toggleGroup,
 } from "./pickerGroups";
+import { SpeedSelector } from "./SpeedSelector";
 import type { ModelPreferences } from "./useModelPreferences";
 
 export interface ModelEffortPickerHandle {
@@ -96,6 +98,11 @@ export interface ModelEffortPickerProps {
 	onRefresh: (force: boolean) => void;
 	preferences: ModelPreferences;
 	defaultOption?: DefaultPairOption;
+	speedControl?: {
+		speed: SessionSpeed;
+		onSelect: (speed: SessionSpeed) => void;
+		disabled: boolean;
+	};
 	container?: HTMLElement | null;
 	className?: string;
 }
@@ -315,6 +322,7 @@ export const ModelEffortPicker = forwardRef<ModelEffortPickerHandle, ModelEffort
 			onRefresh,
 			preferences,
 			defaultOption,
+			speedControl,
 			container,
 			className,
 		},
@@ -495,6 +503,11 @@ export const ModelEffortPicker = forwardRef<ModelEffortPickerHandle, ModelEffort
 							<KindGlyph model={pillModel} className="text-text-muted" />
 						</IconTooltip>
 					) : null}
+					{speedControl && current?.supportsFast && speedControl.speed === "fast" ? (
+						<span className="shrink-0 text-text-muted tr-text-metadata">
+							{t("chat.modelPicker.speedFast")}
+						</span>
+					) : null}
 					<ChevronDown className="size-14 shrink-0 text-text-muted" />
 				</PopoverTrigger>
 				<PopoverContent
@@ -599,6 +612,7 @@ export const ModelEffortPicker = forwardRef<ModelEffortPickerHandle, ModelEffort
 							onSelectLevel={onSelectLevel}
 						/>
 					) : null}
+					{current?.supportsFast && speedControl ? <SpeedSelector {...speedControl} /> : null}
 					<div className="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-4 border-border-default border-t px-8 py-4">
 						{preferences.supported && current ? (
 							<Button

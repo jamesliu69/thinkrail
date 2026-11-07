@@ -192,6 +192,10 @@ the palette ranks with — kept here so host-side search can rank with the same 
     `EXTENSION_SETTINGS_PROTOCOL_VERSION` = v105) the boolean settings the extension declares.
     `ASK_DISCUSS_PROTOCOL_VERSION` (v105) is the host version that renders `ask_user_question`
     `kind: "discuss"` answers; the card withholds Discuss below it.
+  - **Chat speed** — `SESSION_SPEED_PROTOCOL_VERSION` marks `session.setSpeed`, the optional
+    `SessionSummary.speed` hydration field and `session_speed_changed` broadcast. The value is a
+    per-chat request (`standard` or `fast`), not confirmation that the provider applied it. Older
+    hosts omit the field and do not expose the control.
   - **`SessionSummary`** — a chat session as the host reports it for hydration (read side); `live`
     distinguishes an in-memory session from a disk-only one. A frontend hydrates locally placed sessions and
     lists the rest in chat history for explicit reopen. The optional **`openTodos`** (count of non-`done`

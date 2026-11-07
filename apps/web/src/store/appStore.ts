@@ -26,6 +26,7 @@ import type {
 	SessionEventPayload,
 	SessionQueueState,
 	SessionResources,
+	SessionSpeed,
 	SessionState,
 	SessionStateRecord,
 	SessionStats,
@@ -500,6 +501,7 @@ export interface SessionRuntime {
 	queue: SessionQueueState;
 	model: WireModel | null;
 	thinkingLevel: ThinkingLevel;
+	speed: SessionSpeed;
 	eventRevision: number;
 	syncedConnectionGeneration: number;
 	stats: SessionStats | null;
@@ -532,6 +534,7 @@ function newRuntime(
 		queue: EMPTY_QUEUE,
 		model,
 		thinkingLevel,
+		speed: "standard",
 		eventRevision: 0,
 		syncedConnectionGeneration,
 		stats: null,
@@ -896,6 +899,8 @@ export function reduceSessionEvent(rt: SessionRuntime, event: PiEvent): SessionR
 			return clearRetryTurns(rt, "summarization");
 		case "thinking_level_changed":
 			return { ...rt, thinkingLevel: event.level };
+		case "session_speed_changed":
+			return { ...rt, speed: event.speed };
 		default:
 			return rt;
 	}
@@ -4205,6 +4210,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			const wsId = summary.workspaceId;
 			const runtime: SessionRuntime = {
 				...newRuntime(summary.model, summary.thinkingLevel, s.connectionGeneration),
+				speed: summary.speed ?? "standard",
 				turns: hydrated.turns,
 				toolResults: hydrated.toolResults,
 				toolResponses: hydrated.toolResponses,
@@ -4307,6 +4313,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				queue: summary.queue ?? EMPTY_QUEUE,
 				model: summary.model,
 				thinkingLevel: summary.thinkingLevel,
+				speed: summary.speed ?? "standard",
 				hostState:
 					summary.state ??
 					s.sessionStateByWorkspace[summary.workspaceId]?.[summary.sessionId]?.state ??

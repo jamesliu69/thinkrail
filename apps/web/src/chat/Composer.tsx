@@ -8,7 +8,12 @@ import {
 	RiSparkling2Line as Sparkles,
 	RiStopFill as StopFill,
 } from "@remixicon/react";
-import type { ComposerGrowthLimit, ThinkingLevel, WireModel } from "@thinkrail/contracts";
+import type {
+	ComposerGrowthLimit,
+	SessionSpeed,
+	ThinkingLevel,
+	WireModel,
+} from "@thinkrail/contracts";
 import type { MessageKey } from "@thinkrail/locales";
 import { useT } from "@thinkrail/locales/react";
 import { Button, IconButton } from "@thinkrail/ui/button";
@@ -160,6 +165,11 @@ interface ComposerProps {
 	onRefreshModels: (force: boolean) => void;
 	currentModel: WireModel | null;
 	thinkingLevel: ThinkingLevel;
+	speedControl?: {
+		speed: SessionSpeed;
+		onSelect: (speed: SessionSpeed) => void;
+		disabled: boolean;
+	};
 	modelPreferences: ModelPreferences;
 	onMentionQuery: (query: string | null) => void;
 	onSlashActive: (active: boolean) => void;
@@ -201,6 +211,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 		onRefreshModels,
 		currentModel,
 		thinkingLevel,
+		speedControl,
 		modelPreferences,
 		onMentionQuery,
 		onSlashActive,
@@ -577,6 +588,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 							models={models}
 							current={currentModel}
 							level={thinkingLevel}
+							{...(speedControl ? { speedControl } : {})}
 							refreshing={modelsRefreshing}
 							onRefresh={onRefreshModels}
 							onSelect={onSelectModel}

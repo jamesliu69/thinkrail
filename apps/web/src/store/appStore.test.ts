@@ -2179,6 +2179,29 @@ test("a deletion that beats session.list prevents its late history row from retu
 	expect(useAppStore.getState().closedChatsByWorkspace.ws1 ?? []).toHaveLength(0);
 });
 
+test("session speed hydrates and follows host events independently per chat", () => {
+	const store = useAppStore.getState();
+	const summary: SessionSummary = {
+		sessionId: "speed-a",
+		workspaceId: "ws1",
+		title: "",
+		model: null,
+		thinkingLevel: "medium",
+		speed: "fast",
+		isStreaming: false,
+		messageCount: 1,
+		updatedAt: 0,
+		live: true,
+	};
+	store.hydrateSession(summary, emptyHydration());
+	const { speed: _speed, ...legacySummary } = summary;
+	store.hydrateSession({ ...legacySummary, sessionId: "speed-b" }, emptyHydration());
+	expect(useAppStore.getState().sessions["speed-a"]?.speed).toBe("fast");
+	expect(useAppStore.getState().sessions["speed-b"]?.speed).toBe("standard");
+	store.handlePiEvent({ type: "session_speed_changed", speed: "standard" }, "speed-a");
+	expect(useAppStore.getState().sessions["speed-a"]?.speed).toBe("standard");
+});
+
 test("hydrateSession rebuilds a runtime + tab on connect, and never clobbers a live one", () => {
 	const store = useAppStore.getState();
 	useAppStore.setState({ activeWorkspaceId: "ws1" });

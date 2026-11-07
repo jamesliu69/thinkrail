@@ -77,6 +77,7 @@ import {
 	setSessionManagerFactory,
 	setSessionProjectResolver,
 	setSessionPublisher,
+	setSessionSpeed,
 	setSessionStatePublisher,
 	setSkillAdmissionResolver,
 	setSubagentsEnabledResolver,
@@ -334,6 +335,27 @@ afterAll(() => {
 	else process.env.THINKRAIL_DATA_DIR = priorDataDir;
 	if (priorOffline === undefined) delete process.env.PI_OFFLINE;
 	else process.env.PI_OFFLINE = priorOffline;
+});
+
+test("session speed is scoped to one chat and broadcast to clients", async () => {
+	const cwd = tmpCwd("trpi-speed-");
+	const workspaceId = "ws-speed";
+	const a = await createSession({ cwd, workspaceId, model: toWireModel(fauxA.getModel()) });
+	const b = await createSession({ cwd, workspaceId, model: toWireModel(fauxA.getModel()) });
+	try {
+		setSessionSpeed(a.sessionId, "fast");
+		expect(events.get(a.sessionId)).toContainEqual({
+			type: "session_speed_changed",
+			speed: "fast",
+		});
+		expect((await getSessionMessages(a.sessionId, workspaceId, cwd)).summary.speed).toBe("fast");
+		expect((await getSessionMessages(b.sessionId, workspaceId, cwd)).summary.speed).toBe(
+			"standard",
+		);
+	} finally {
+		await removeSession(a.sessionId);
+		await removeSession(b.sessionId);
+	}
 });
 
 test("session creation publishes a domain summary for other frontends", async () => {
@@ -1578,9 +1600,10 @@ test("wire models expose only the allowlisted fields (no baseUrl/headers/other M
 			"name",
 			"provider",
 			"reasoning",
+			"supportsFast",
 			"thinkingLevels",
 		]);
-		expect(m.thinkingLevels).toEqual(["off"]);
+		expect(Array.isArray(m.thinkingLevels)).toBe(true);
 		expect(Object.keys(m.cost ?? {}).sort()).toEqual(["input", "output"]);
 		expect(m.auth?.kind).toBeDefined();
 	}

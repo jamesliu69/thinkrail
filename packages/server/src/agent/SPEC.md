@@ -315,7 +315,12 @@ re-opened transcripts provider-valid.
     and publish each changed record. The shared collector awaits disk discovery *first* and then assembles
     live and disk sources in one synchronous pass (live wins by id), so a chat that attaches mid-scan is
     counted once instead of slipping between the two lists — the same holds for `listSessionStates`; `nudgeSession` atomically skips needs-input,
-    queues while running, or prompts while idle. `SessionSummary.state` and `session.state` use the same
+    queues while running, or prompts while idle. Per-chat requested speed is stored as a pi custom entry on
+    the active branch (not in model context); it defaults to standard and setter changes are broadcast.
+    A public pi `before_provider_request` hook requests `service_tier: priority` only for Fast, a known
+    compatible model, the native OpenAI endpoint and resolved ChatGPT OAuth; this does not confirm service.
+    See [[pi-compatibility]] for the model-list and removal gates.
+    `SessionSummary.state` and `session.state` use the same
     derivation, so a client proves the exact rendered completion by id rather than inventing lifecycle.
 
     New-session and pre-session entrypoints capture the current generation; operations on a live session use
@@ -347,7 +352,7 @@ re-opened transcripts provider-valid.
     through the same idle-delivery fallback as `followUpSession` — the first becomes a `prompt`, the rest
     steer into the run it starts; delivery timing may degrade across that race window, content is never lost
     (pinned by the idle-fallback unit test) —
-    `setModel` / `setThinkingLevel` / **manual `compact` guarded per session** (a second overlapping request
+    `setModel` / `setThinkingLevel` / `setSessionSpeed` / **manual `compact` guarded per session** (a second overlapping request
     is rejected before Pi can overwrite its one compaction controller; an active Pi compaction also blocks
     entry) / `getSessionStats` (+ contextUsage) / `getSessionCommands` /
     `listAvailableModels` / `listSettledModels` (the same snapshot without starting a refresh) / **`clampThinkingForModel`** (pi's `clampThinkingLevel` for a `{model, level}`

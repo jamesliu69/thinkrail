@@ -871,6 +871,10 @@ both message orders. *Rejected:* keeping the modal for non-MCP extensions — ev
   `model.clampThinking` and applies the answer — the reconcile `NewWorkspaceDialog` already runs for its
   pair, and the same clamp pi applies at request time — so the pill and slider show the level pi will
   actually use rather than a stop the rail does not have.
+  A compatible ChatGPT OAuth model in an existing chat additionally shows requested Standard/Fast speed
+  below the effort control; protocol v107 and current host catalog capability are required. The host owns
+  the per-chat selection and broadcasts changes. A hint warns that Fast may consume quota or credits
+  faster and is a request, not a guarantee; other models and pre-session pickers do not offer it.
   Rows are **two lines**: the name, then `provider · [kind glyph] what it draws on · price · context`. The list reads **Default
   row** (pre-session callers only, `defaultOption`: what the host would pick, checked while the caller
   follows it) → **Pinned** → **Recent** (the host's list minus pinned models) → provider groups, folded behind one

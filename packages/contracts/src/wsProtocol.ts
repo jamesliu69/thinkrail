@@ -90,6 +90,7 @@ import type {
 	RefreshedModels,
 	RemovedQueuedMessage,
 	SessionQueueContent,
+	SessionSpeed,
 	SessionStats,
 	SessionSummary,
 	SkillCatalogEntry,
@@ -135,7 +136,8 @@ export type TemplateReadLocation =
 	| { projectId: string; workspaceId?: never }
 	| { workspaceId?: never; projectId?: never };
 
-export const PROTOCOL_VERSION = 106;
+export const PROTOCOL_VERSION = 107;
+export const SESSION_SPEED_PROTOCOL_VERSION = 107;
 export const PROJECT_LOCATE_PROTOCOL_VERSION = 106;
 export const WORKSPACE_CREATION_PROTOCOL_VERSION = 104;
 export const EXTENSION_SETTINGS_PROTOCOL_VERSION = 105;
@@ -372,6 +374,7 @@ export const WS_METHODS = {
 	sessionRename: "session.rename",
 	sessionSetModel: "session.setModel",
 	sessionSetThinkingLevel: "session.setThinkingLevel",
+	sessionSetSpeed: "session.setSpeed",
 	sessionCompact: "session.compact",
 	sessionGetStats: "session.getStats",
 	sessionGetCommands: "session.getCommands",
@@ -1061,6 +1064,7 @@ export interface WsMethodMap {
 	};
 	"session.setModel": { params: { sessionId: string; model: WireModel }; result: Ack };
 	"session.setThinkingLevel": { params: { sessionId: string; level: ThinkingLevel }; result: Ack };
+	"session.setSpeed": { params: { sessionId: string; speed: SessionSpeed }; result: Ack };
 	"session.compact": { params: { sessionId: string; instructions?: string }; result: Ack };
 	"session.getStats": { params: { sessionId: string }; result: SessionStats };
 	"session.getCommands": { params: { sessionId: string }; result: SlashCommandInfo[] };

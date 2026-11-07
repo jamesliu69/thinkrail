@@ -67,6 +67,16 @@ A public SDK replacement must preserve session isolation, cancellation, project 
 transcripts, and compiled/desktop behavior before the host implementation is removed. Importing a
 private dist path in production is not a replacement; such imports remain confined to parity tests.
 
+## ChatGPT Fast request adaptation
+
+**Owner:** [[submodule-server-agent]], `agent/chatGptFast.ts`.
+Pi exposes `before_provider_request`, but does not expose a per-session ChatGPT Fast setting.
+The host stores the requested mode in the pi session tree and uses the public hook to request
+`service_tier: "priority"` only for known compatible ChatGPT OAuth models. It is a request, not a
+confirmation that the service granted priority. The model allowlist requires rechecking when OpenAI
+or pi changes its catalog. Remove the payload hook and allowlist once a public pi per-session speed
+API provides equivalent persistence, model and credential gating, and multi-client synchronization.
+
 ## MCP adaptations
 
 ### Configuration loader and writers

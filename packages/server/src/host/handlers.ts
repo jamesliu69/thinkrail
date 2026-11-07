@@ -76,6 +76,7 @@ import {
 	sendReviewFixToSession,
 	setModelContextWindow,
 	setSessionModel,
+	setSessionSpeed,
 	setSessionThinkingLevel,
 	steerSession,
 	stopAllSubagents,
@@ -1197,6 +1198,10 @@ const handlers: WsHandlers = {
 	},
 	"session.setThinkingLevel": (p) => {
 		setSessionThinkingLevel(p.sessionId, p.level);
+		return { ok: true } as const;
+	},
+	"session.setSpeed": (p) => {
+		setSessionSpeed(p.sessionId, p.speed);
 		return { ok: true } as const;
 	},
 	"session.compact": async (p) => {

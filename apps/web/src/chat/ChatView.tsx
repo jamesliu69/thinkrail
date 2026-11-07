@@ -2,7 +2,9 @@ import {
 	type PromptHit,
 	type QueueLane,
 	type ResourceKind,
+	SESSION_SPEED_PROTOCOL_VERSION,
 	type SessionQueueContent,
+	type SessionSpeed,
 	type SubagentResourceSummary,
 	sameModel,
 	type TemplateInfo,
@@ -104,6 +106,11 @@ export default function ChatView({
 	const thinkingLevel = useAppStore(
 		(s) => s.sessions[sessionId]?.thinkingLevel ?? EMPTY_RUNTIME.thinkingLevel,
 	);
+	const speed = useAppStore((s) => s.sessions[sessionId]?.speed ?? "standard");
+	const speedProtocolSupported = useAppStore(
+		(s) => (s.protocolVersion ?? 0) >= SESSION_SPEED_PROTOCOL_VERSION,
+	);
+	const [speedPending, setSpeedPending] = useState(false);
 	const extUiStatus = useAppStore(
 		(s) => s.sessions[sessionId]?.extUiStatus ?? EMPTY_RUNTIME.extUiStatus,
 	);
@@ -495,6 +502,18 @@ export default function ChatView({
 		pairSelection.current += 1;
 		useAppStore.getState().setThinkingLevel(sessionId, level);
 		void requestLevel(level, thinkingLevel);
+	};
+
+	/** 等候宿主廣播對話速度，失敗時保留先前狀態並顯示錯誤。 */
+	const onSelectSpeed = (next: SessionSpeed) => {
+		if (next === speed || speedPending) return;
+		setSpeedPending(true);
+		void getTransport()
+			.request("session.setSpeed", { sessionId, speed: next })
+			.catch((error: unknown) =>
+				toast.error(errorText(error), translate("chat.modelPicker.speedChangeFailed")),
+			)
+			.finally(() => setSpeedPending(false));
 	};
 
 	const onSelectModel = ({ model, level }: ModelSelection) => {
@@ -928,6 +947,9 @@ export default function ChatView({
 					onRefreshModels={onRefreshModels}
 					currentModel={currentModel}
 					thinkingLevel={thinkingLevel}
+					{...(speedProtocolSupported && selectCatalogModel(allModels, sessionModel)?.supportsFast
+						? { speedControl: { speed, onSelect: onSelectSpeed, disabled: speedPending } }
+						: {})}
 					modelPreferences={modelPreferences}
 					onMentionQuery={onMentionQuery}
 					onSlashActive={setSlashActive}

@@ -35,6 +35,7 @@ import type {
 	SessionEventPayload,
 	SessionQueueContent,
 	SessionQueueState,
+	SessionSpeed,
 	SessionState,
 	SessionStateRecord,
 	SessionStats,
@@ -86,6 +87,7 @@ import {
 	type ExtraUsageSubject,
 	shouldWarnAnthropicExtraUsage,
 } from "./anthropicExtraUsage";
+import { chatGptFastExtension, chatGptFastSupported } from "./chatGptFast";
 import { archiveCommandHistory, publishSessionResourcesChanged } from "./chatResources";
 import {
 	disposeSessionChildren,
@@ -135,6 +137,7 @@ import { catalogProviderAuth } from "./providerAuth";
 import { REQUEST_REVIEW_TOOL_NAME } from "./requestReviewTool";
 import { projectSessionEvent } from "./sessionEventProjection";
 import { repairDanglingToolCalls } from "./sessionRepair";
+import { readSessionSpeed, writeSessionSpeed } from "./sessionSpeed";
 import { deriveSessionState } from "./sessionState";
 import type { SkillAdmissionContext } from "./skillAdmission";
 import {
@@ -1121,7 +1124,15 @@ function sessionWireModel(
 	model: Model<string>,
 	generation: Pick<PiRuntimeGeneration, "runtime" | "opaqueProviderIds">,
 ): WireModel {
-	return toWireModel(model, catalogProviderAuth(generation, model.provider));
+	return {
+		...toWireModel(model, catalogProviderAuth(generation, model.provider)),
+		supportsFast:
+			chatGptFastSupported(
+				model,
+				generation.runtime.isUsingOAuth(model.provider),
+				generation.opaqueProviderIds.has(model.provider),
+			) && generation.runtime.getProviderAuthStatus(model.provider).source === "stored",
+	};
 }
 
 function resolveWireModel(
@@ -1521,6 +1532,7 @@ async function createParentSessionInternal(
 					createBackgroundCommandsExtension({ service: commands }),
 					...mcpHost.extensions,
 					extraUsageModelSelectExtension(sessionId),
+					chatGptFastExtension(sessionManager, generation),
 				],
 				{ ...toolResponseSessionServices(toolResponseWaiters), workspaceFiles },
 			),
@@ -1600,6 +1612,7 @@ function summaryOf(sessionId: string, entry: Entry): SessionSummary {
 			? sessionWireModel(session.model as unknown as Model<string>, entry.generation)
 			: null,
 		thinkingLevel: session.thinkingLevel,
+		speed: readSessionSpeed(session.sessionManager),
 		isStreaming: session.isStreaming,
 		messageCount: session.messages.length,
 		updatedAt: Date.now(),
@@ -1736,6 +1749,7 @@ async function listSessionsInternal(workspaceId: string, cwd: string): Promise<S
 				...firstPromptOf(manager.getEntries()),
 				model: null,
 				thinkingLevel: "medium" as ThinkingLevel,
+				speed: readSessionSpeed(manager),
 				isStreaming: false,
 				messageCount: info.messageCount,
 				updatedAt: info.modified.getTime(),
@@ -2593,6 +2607,14 @@ export function setSessionThinkingLevel(sessionId: string, level: ThinkingLevel)
 	mustGet(sessionId).setThinkingLevel(level);
 }
 
+/** 更新指定對話的速度選擇，並向所有客戶端廣播。 */
+export function setSessionSpeed(sessionId: string, speed: SessionSpeed): void {
+	if (speed !== "standard" && speed !== "fast") throw new Error("Invalid session speed");
+	const session = mustGet(sessionId);
+	writeSessionSpeed(session.sessionManager, speed);
+	publish({ sessionId, event: { type: "session_speed_changed", speed } });
+}
+
 export function getSessionStats(sessionId: string): SessionStats {
 	const session = mustGet(sessionId);
 	const stats = session.getSessionStats();
@@ -2807,7 +2829,15 @@ function readAvailableWireModels(generation: PiRuntimeGeneration): WireModel[] {
 			auth = catalogProviderAuth(generation, model.provider);
 			authByProvider.set(model.provider, auth);
 		}
-		return toWireModel(model, auth);
+		return {
+			...toWireModel(model, auth),
+			supportsFast:
+				chatGptFastSupported(
+					model,
+					generation.runtime.isUsingOAuth(model.provider),
+					generation.opaqueProviderIds.has(model.provider),
+				) && generation.runtime.getProviderAuthStatus(model.provider).source === "stored",
+		};
 	});
 }
 

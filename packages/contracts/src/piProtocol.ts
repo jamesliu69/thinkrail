@@ -39,6 +39,8 @@ export type WireModel = Pick<
 	input?: Model<string>["input"];
 	/** How the model's provider is connected — decides whether `cost` is what the user pays. */
 	auth?: WireModelAuth;
+	/** 此模型與登入方式可要求 ChatGPT Fast，不代表服務端保證採用。 */
+	supportsFast?: boolean;
 };
 
 export interface WireModelAuth {
@@ -64,6 +66,9 @@ export interface AgentSettlement {
 	stopReason: StopReason;
 	errorMessage?: string;
 }
+
+/** 每個對話要求的服務速度，並不代表服務端已確認套用。 */
+export type SessionSpeed = "standard" | "fast";
 
 export type SessionInputKind = "tool-response" | "dialog";
 
@@ -121,6 +126,7 @@ export type PiEvent =
 	| { type: "session_info_changed"; name: string | undefined }
 	| { type: "entry_appended"; entryType: string }
 	| { type: "thinking_level_changed"; level: ThinkingLevel }
+	| { type: "session_speed_changed"; speed: SessionSpeed }
 	| {
 			type: "compaction_end";
 			reason: "manual" | "threshold" | "overflow";
@@ -207,6 +213,7 @@ export interface SessionSummary {
 	firstPrompt?: string;
 	model: WireModel | null;
 	thinkingLevel: ThinkingLevel;
+	speed?: SessionSpeed;
 	isStreaming: boolean;
 	messageCount: number;
 	updatedAt: number;
