@@ -9,22 +9,28 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@thinkrail/ui/dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function OpenProjectPathDialog({
 	open,
 	reason,
+	initialPath,
 	onOpenChange,
 	onSubmit,
 }: {
 	open: boolean;
 	reason: string | null;
+	initialPath?: string;
 	onOpenChange: (open: boolean) => void;
 	onSubmit: (path: string) => void;
 }) {
 	const t = useT();
 	const [path, setPath] = useState("");
 	const finalPath = path.trim();
+
+	useEffect(() => {
+		if (open && initialPath !== undefined) setPath(initialPath);
+	}, [open, initialPath]);
 
 	const setOpen = (next: boolean) => {
 		if (!next) setPath("");

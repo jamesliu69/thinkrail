@@ -4,6 +4,7 @@ export {
 	inspectCloneDestination,
 	startProjectClone,
 } from "./clone";
+export { locateProjectFolders } from "./locate";
 export {
 	acknowledgeProjectSkills,
 	approveProjectMcpServer,

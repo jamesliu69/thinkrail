@@ -24,6 +24,7 @@ import {
 	DEFAULT_MODEL_PROTOCOL_VERSION,
 	EXTENSION_CATALOG_PROTOCOL_VERSION,
 	EXTENSION_SETTINGS_PROTOCOL_VERSION,
+	PROJECT_LOCATE_PROTOCOL_VERSION,
 	FEEDBACK_SURVEY_PROTOCOL_VERSION,
 	FONTS_PROTOCOL_VERSION,
 	GITHUB_STAR_PROTOCOL_VERSION,
@@ -586,8 +587,14 @@ test("custom endpoints are pinned to v101 and own only custom-* providers", () =
 
 test("extension settings are pinned to v105", () => {
 	expect(EXTENSION_SETTINGS_PROTOCOL_VERSION).toBe(105);
-	expect(PROTOCOL_VERSION).toBe(105);
+	expect(PROTOCOL_VERSION).toBeGreaterThanOrEqual(EXTENSION_SETTINGS_PROTOCOL_VERSION);
 	expect(DEFAULT_CONFIG.extensionSettings).toEqual({});
+});
+
+test("project folder location is pinned to v106", () => {
+	expect(PROJECT_LOCATE_PROTOCOL_VERSION).toBe(106);
+	expect(PROTOCOL_VERSION).toBeGreaterThanOrEqual(PROJECT_LOCATE_PROTOCOL_VERSION);
+	expect(WS_METHODS.projectLocateFolder).toBe("project.locateFolder");
 });
 
 test("ask_user_question discuss answers are pinned to v105, after background workspace creation", () => {

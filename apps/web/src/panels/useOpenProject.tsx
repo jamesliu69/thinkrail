@@ -16,12 +16,17 @@ const projectOpenIntents = createLatestOperation();
 
 export type OpenedProjectIntent = { setup: boolean };
 
+export interface EnterHostPathHint {
+	prefilledPath?: string;
+	reason?: string | null;
+}
+
 export function useOpenProject(
 	onOpened: (project: Project, intent: OpenedProjectIntent) => void | Promise<void>,
 ): {
 	openProject: (rawPath: string) => Promise<void>;
 	pickAndOpen: () => Promise<void>;
-	enterHostPath: () => void;
+	enterHostPath: (hint?: EnterHostPathHint) => void;
 	startNewProject: () => void;
 	cloneRepository: (() => void) | undefined;
 	dialogs: ReactNode;
@@ -32,7 +37,10 @@ export function useOpenProject(
 	const [initTarget, setInitTarget] = useState<string | null>(null);
 	const [creating, setCreating] = useState(false);
 	const [openError, setOpenError] = useState<string | null>(null);
-	const [pathEntry, setPathEntry] = useState<{ reason: string | null } | null>(null);
+	const [pathEntry, setPathEntry] = useState<{
+		reason: string | null;
+		prefilledPath?: string;
+	} | null>(null);
 
 	const adopt = async (
 		project: Project,
@@ -89,9 +97,13 @@ export function useOpenProject(
 			}
 		: undefined;
 
-	const enterHostPath = () => {
+	const enterHostPath = (hint?: EnterHostPathHint) => {
 		projectOpenIntents.begin();
-		setPathEntry({ reason: null });
+		const next: { reason: string | null; prefilledPath?: string } = {
+			reason: hint?.reason ?? null,
+		};
+		if (hint?.prefilledPath !== undefined) next.prefilledPath = hint.prefilledPath;
+		setPathEntry(next);
 	};
 
 	const pickAndOpen = async () => {
@@ -148,6 +160,9 @@ export function useOpenProject(
 			<OpenProjectPathDialog
 				open={pathEntry !== null}
 				reason={pathEntry?.reason ?? null}
+				{...(pathEntry?.prefilledPath !== undefined
+					? { initialPath: pathEntry.prefilledPath }
+					: {})}
 				onOpenChange={(open) => {
 					if (!open) setPathEntry(null);
 				}}

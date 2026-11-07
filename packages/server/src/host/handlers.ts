@@ -163,6 +163,7 @@ import {
 	inspectCloneDestination,
 	inspectProjectPath,
 	listProjects,
+	locateProjectFolders,
 	openProject,
 	renameProject,
 	setProjectGroupEnabled,
@@ -650,6 +651,9 @@ const handlers: WsHandlers = {
 		const project = listProjects().find((p) => p.id === projectId);
 		return { hasSpecs: project ? projectHasSpecs(project.path) : false };
 	},
+	"project.locateFolder": async (params) => ({
+		matches: await locateProjectFolders(params.name),
+	}),
 	"project.close": (params) => {
 		closeProject(params.id);
 		return { ok: true } as const;

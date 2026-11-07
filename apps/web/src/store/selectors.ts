@@ -13,6 +13,7 @@ import {
 	MODEL_PICKER_PROTOCOL_VERSION,
 	ONBOARDING_PROTOCOL_VERSION,
 	PROJECT_CLONE_PROTOCOL_VERSION,
+	PROJECT_LOCATE_PROTOCOL_VERSION,
 	PROJECT_TRUST_PROTOCOL_VERSION,
 	type Project,
 	RESOURCE_HISTORY_PROTOCOL_VERSION,
@@ -128,6 +129,10 @@ export function selectSupportsProjectTrust(state: ProtocolState): boolean {
 
 export function selectSupportsProjectClone(state: ProtocolState): boolean {
 	return state.protocolVersion !== null && state.protocolVersion >= PROJECT_CLONE_PROTOCOL_VERSION;
+}
+
+export function selectSupportsProjectLocateFolder(state: ProtocolState): boolean {
+	return state.protocolVersion !== null && state.protocolVersion >= PROJECT_LOCATE_PROTOCOL_VERSION;
 }
 
 export function selectSupportsOnboarding(state: ProtocolState): boolean {

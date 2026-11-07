@@ -135,7 +135,8 @@ export type TemplateReadLocation =
 	| { projectId: string; workspaceId?: never }
 	| { workspaceId?: never; projectId?: never };
 
-export const PROTOCOL_VERSION = 105;
+export const PROTOCOL_VERSION = 106;
+export const PROJECT_LOCATE_PROTOCOL_VERSION = 106;
 export const WORKSPACE_CREATION_PROTOCOL_VERSION = 104;
 export const EXTENSION_SETTINGS_PROTOCOL_VERSION = 105;
 export const ASK_DISCUSS_PROTOCOL_VERSION = 105;
@@ -272,6 +273,7 @@ export const WS_METHODS = {
 	projectClone: "project.clone",
 	projectCancelClone: "project.cancelClone",
 	projectHasSpecs: "project.hasSpecs",
+	projectLocateFolder: "project.locateFolder",
 	projectSetTrust: "project.setTrust",
 	projectAcknowledgeSkills: "project.acknowledgeSkills",
 	projectSetSkillEnabled: "project.setSkillEnabled",
@@ -756,6 +758,7 @@ export interface WsMethodMap {
 	};
 	"project.cancelClone": { params: { operationId: string }; result: Ack };
 	"project.hasSpecs": { params: { projectId: string }; result: { hasSpecs: boolean } };
+	"project.locateFolder": { params: { name: string }; result: { matches: string[] } };
 	"project.setTrust": {
 		params: { id: string; trusted: boolean; resources?: boolean };
 		result: Project;
@@ -1351,7 +1354,8 @@ export type WsErrorCode =
 	| "WORKTREE_ADD_FAILED"
 	| "WORKTREE_CHECKOUT_FAILED"
 	| "WORKTREE_CHECKOUT_STALLED"
-	| "WORKSPACE_PATH_TAKEN";
+	| "WORKSPACE_PATH_TAKEN"
+	| "LOCATE_INVALID_NAME";
 
 export interface WsResponse {
 	id: string;

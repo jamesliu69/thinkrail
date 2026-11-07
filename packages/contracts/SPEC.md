@@ -39,9 +39,11 @@ the palette ranks with — kept here so host-side search can rank with the same 
   holds — the ring is 20 deep and dies with the process), and **`UNSUPPORTED_CHANGE`** (the selected
   change is a symlink or mode-only mutation that this byte-oriented write path deliberately refuses), plus
   the four `feedback.survey.submit` refusals `SURVEY_INVALID`, `SURVEY_UNAVAILABLE`, `SURVEY_CHANGED` and
-  `SURVEY_NOT_SENT`, and `fonts.installed`'s `INSTALLED_FONTS_UNAVAILABLE`: the host's OS font service could
+  `SURVEY_NOT_SENT`, `fonts.installed`'s `INSTALLED_FONTS_UNAVAILABLE`: the host's OS font service could
   not be read, a failure analytics tells apart from a lost connection while the font picker offers Retry for
-  either), so a client can react to one specific failure
+  either, and `project.locateFolder`'s `LOCATE_INVALID_NAME` — a name the host refuses to search for
+  (Error Tracking only: the web sends only single-segment names read from a dropped directory, so no
+  client branches on it)), so a client can react to one specific failure
   instead of pattern-matching an error message. A failure earns a code only when a client behaves differently
   for it or Error Tracking must tell it apart (it never sees `message`). Two codes exist for the latter:
   **`REQUEST_REPLAY_OVERFLOW`** — the host's replay namespace for this page is full
@@ -642,7 +644,9 @@ the palette ranks with — kept here so host-side search can rank with the same 
   replays the original request; a 30-minute host deadline is shorter than the client's 31-minute wait.
   + **`project.hasSpecs`** (lazy per-project "contains a registered
   spec?" for the Welcome screen — a full-tree walk, so requested only for the shown project,
-  never eagerly for every project) / `workspace.*` — notably **`workspace.list { projectId,
+  never eagerly for every project) + **`project.locateFolder`** (`{ name }` → `{ matches }` — bounded
+  host-side search for same-named folders, capped at 8, `PROJECT_LOCATE_PROTOCOL_VERSION` pins its v106
+  introduction; the web's drag-a-folder open flow feeds it) / `workspace.*` — notably **`workspace.list { projectId,
   includeDiffStats? }`**, where omitted/true preserves the existing full rows with computed aggregates and
   `false` returns the same authoritative membership/order without the synchronous per-workspace diff-stat
   fan-out used nowhere by navigation restoration / `fs.*` (**`fs.readFile`** answers

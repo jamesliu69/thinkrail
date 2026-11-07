@@ -465,6 +465,20 @@ requests cancellation. A reconnect replays the pending operation. Success adopts
 same last-intent fence as opening a local project, without starting a chat. A late result cannot steal a
 newer open-project selection.
 
+**Dragging a folder onto the window.** The shell's `DroppedFolderHost` turns a drag of exactly one
+directory anywhere on the window into an open gesture; a file, several items, or a mixed drag is
+silently ignored — no dialog, no navigation, and no `preventDefault`, so anything else that consumes
+the drop first (a composer image drop, a `defaultPrevented` event) keeps it. While any modal layer is
+open the drag is not claimed at all, so the browser's native refuse-drop cursor answers it. The host
+folder name is located via `project.locateFolder` when the host supports it: a single match opens
+straight away, several open a **`LocatedFoldersDialog`** chooser, and zero matches, a timeout, an
+error, or an older host fall back to the **Open project from host path** dialog pre-filled with the
+dropped name and a reason naming what happened. Opening through this gesture lands on the project's
+Welcome like any other open — it never starts a setup chat. A second drop supersedes an in-flight one
+before it can open, choose, or raise a dialog. The pure drop summary decision lives in
+`droppedFolder.ts` (testable without a DOM `DragEvent`); `useOpenProject.enterHostPath` carries the
+optional `prefilledPath`/`reason` hint every fallback uses.
+
 **Cold-start onboarding wizard.** `OnboardingWizard` replaces the Welcome cards only on a true cold start:
 the host supports `ONBOARDING_PROTOCOL_VERSION`, `AppConfig.onboardingDismissed` is false, there are no
 open or recent projects, and the provider status snapshot reports none. The decision is **latched in the store gate** (it survives remounts) so
