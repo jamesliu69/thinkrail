@@ -106,30 +106,46 @@ test("window chrome preload seeds include the web controls policy", () => {
 	});
 });
 
-test("the style writer keeps the latest geometry until the document root exists", () => {
-	let style: { setProperty(property: string, value: string): void } | null = null;
+test("the chrome writer retains geometry and drag policy until the document root exists", () => {
+	let root: {
+		style: { setProperty(property: string, value: string): void };
+		toggleAttribute(name: string, force?: boolean): boolean;
+	} | null = null;
 	const writes: Array<[property: string, value: string]> = [];
-	const writer = createWindowChromeStyleWriter(() => style);
+	const attributes = new Set<string>();
+	const writer = createWindowChromeStyleWriter(() => root);
 	writer.update({ insetLeft: 64, insetRight: 0, dragRegion: true });
 	writer.update({ insetLeft: 12, insetRight: 8, dragRegion: false });
 	expect(writes).toEqual([]);
 
-	style = { setProperty: (property, value) => writes.push([property, value]) };
+	root = {
+		style: { setProperty: (property, value) => writes.push([property, value]) },
+		toggleAttribute(name, force) {
+			if (force) attributes.add(name);
+			else attributes.delete(name);
+			return attributes.has(name);
+		},
+	};
 	writer.flush();
 	expect(writes).toEqual([
 		["--window-chrome-inset-left", "12px"],
 		["--window-chrome-inset-right", "8px"],
-		["--window-chrome-drag-region", "no-drag"],
 	]);
+	expect(attributes.has("data-window-chrome-drag")).toBe(false);
 	writer.update({ insetLeft: "invalid", insetRight: 0, dragRegion: true });
-	expect(writes).toHaveLength(3);
+	expect(writes).toHaveLength(2);
+	expect(attributes.has("data-window-chrome-drag")).toBe(false);
 
-	writer.update({ insetLeft: 2, insetRight: 3 });
-	expect(writes.slice(-3)).toEqual([
-		["--window-chrome-inset-left", "2px"],
-		["--window-chrome-inset-right", "3px"],
-		["--window-chrome-drag-region", "no-drag"],
+	writer.update({ insetLeft: 2, insetRight: 3, dragRegion: true });
+	expect(attributes.has("data-window-chrome-drag")).toBe(true);
+	writer.update({ insetLeft: 4, insetRight: 5 });
+	expect(writes.slice(-2)).toEqual([
+		["--window-chrome-inset-left", "4px"],
+		["--window-chrome-inset-right", "5px"],
 	]);
+	expect(attributes.has("data-window-chrome-drag")).toBe(true);
+	writer.update({ insetLeft: 0, insetRight: 0, dragRegion: false });
+	expect(attributes.has("data-window-chrome-drag")).toBe(false);
 });
 
 test("window chrome geometry publishes on dom-ready and only changed resize geometry", () => {

@@ -151,6 +151,32 @@ test("ordinary browsers have a fixed themed header with zero native insets", asy
 	await expect(page.getByTestId("settings-dialog")).toBeHidden();
 });
 
+test("the host can enable and disable the native title bar region", async ({ page }) => {
+	await openAppFresh(page);
+	const header = page.getByTestId("topbar");
+	const actions = page.getByTestId("topbar-actions");
+	await expect(header).toHaveCSS("-webkit-app-region", "no-drag");
+	await page.evaluate(() => document.documentElement.setAttribute("data-window-chrome-drag", ""));
+	await expect(header).toHaveCSS("-webkit-app-region", "drag");
+	await expect(actions).toHaveCSS("-webkit-app-region", "no-drag");
+	const hasLiteralDragRule = await header.evaluate((element) => {
+		const matches = (rules: CSSRuleList): boolean =>
+			Array.from(rules).some((rule) => {
+				if (rule instanceof CSSStyleRule) {
+					return (
+						rule.style.getPropertyValue("app-region") === "drag" &&
+						element.matches(rule.selectorText)
+					);
+				}
+				return rule instanceof CSSGroupingRule && matches(rule.cssRules);
+			});
+		return Array.from(document.styleSheets).some((sheet) => matches(sheet.cssRules));
+	});
+	expect(hasLiteralDragRule).toBe(true);
+	await page.evaluate(() => document.documentElement.removeAttribute("data-window-chrome-drag"));
+	await expect(header).toHaveCSS("-webkit-app-region", "no-drag");
+});
+
 test("live safe areas on either edge preserve header and workbench geometry", async ({
 	page,
 }, testInfo) => {
@@ -304,9 +330,7 @@ test("the action cluster keeps Update, quota Retry and Settings out of the drag 
 	await expect(page.getByTestId("settings-dialog")).toBeHidden();
 
 	const buttons = ["update-ready", "jbcentral-quota", "open-settings"];
-	await page.evaluate(() =>
-		document.documentElement.style.setProperty("--window-chrome-drag-region", "drag"),
-	);
+	await page.evaluate(() => document.documentElement.setAttribute("data-window-chrome-drag", ""));
 	await setInsets(page, 80, 138);
 	await expectUsableHeader(page, buttons, "drag");
 
@@ -356,9 +380,7 @@ test("HTML window controls appear only with the native bridge and drive it", asy
 		Object.defineProperty(globalThis, "__TEST_WINDOW_LISTENERS__", { value: listeners });
 	});
 	await openAppFresh(page);
-	await page.evaluate(() =>
-		document.documentElement.style.setProperty("--window-chrome-drag-region", "drag"),
-	);
+	await page.evaluate(() => document.documentElement.setAttribute("data-window-chrome-drag", ""));
 	await setInsets(page, 0, 138);
 
 	const controls = page.getByTestId("window-controls");

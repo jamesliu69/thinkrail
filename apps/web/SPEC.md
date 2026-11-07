@@ -225,7 +225,8 @@ themselves.
   generated colour/spacing layers, `index.css` maps the shell's structural rows (`--spacing-panel-header-row`,
   `--spacing-topbar-row` from `tokens.css`) and the two host-published window-chrome insets
   (`--spacing-window-chrome-inset-left|right: var(--window-chrome-inset-*, 0px)`), while the host also
-  publishes `--window-chrome-drag-region`. It declares the only two non-typographic handwritten utilities,
+  opts into dragging with the `data-window-chrome-drag` attribute. It declares the only two
+  non-typographic handwritten utilities,
   `window-drag` / `window-no-drag` (`-webkit-app-region` + `app-region`); `window-drag` is inert unless the
   host opts in. A host that removed its own caption buttons additionally installs the type-only
   `NativeWindowControlsBridge` from `contracts`, which the shell turns into HTML window controls. A native host may set these properties on `<html>`; the app never detects the host, it reads
