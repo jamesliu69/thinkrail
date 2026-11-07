@@ -39,13 +39,14 @@ The topbar keeps ThinkRail identity, connection state, Settings, and compact loc
 as the **window title bar** when a native host removes its own strip ([[module-desktop]], *Native window
 chrome*). It is a fixed `h-topbar-row` (`--topbar-row-height`, 40px — macOS title-bar proportions, so
 native traffic lights sit centred in it) with `px-16`, and it is host-agnostic: the only host-shaped input
-is three CSS custom properties on `<html>`. `--window-chrome-inset-left` / `--window-chrome-inset-right`
+is two CSS custom properties and an opt-in attribute on `<html>`. `--window-chrome-inset-left` /
+`--window-chrome-inset-right`
 are consumed through the `w-window-chrome-inset-*` spacing tokens by one `aria-hidden` edge spacer on each
 side (`window-chrome-inset-left|right`); unset (any browser) they resolve to `0px` and the header looks as
 before, while the desktop publishes `64px` on macOS so content starts at 80px and collapses it to `0px` in
-fullscreen. `--window-chrome-drag-region` drives the header's `window-drag` utility, which resolves to
-`no-drag` unless the host publishes `drag`, so a browser tab or a natively decorated window never gains a
-drag strip. Padding was deliberately not used for the inset: the `spacingUsage` gate lets padding utilities
+fullscreen. `data-window-chrome-drag` enables the header's `window-drag` utility, which resolves to
+`no-drag` unless the host adds the attribute, so a browser tab or a natively decorated window never gains
+a drag strip. Padding was deliberately not used for the inset: the `spacingUsage` gate lets padding utilities
 name only canonical steps, and a CSS `padding-left: max(…)` would need a gate exemption. The header is
 `select-none`; its whole trailing action cluster (`topbar-actions`) is `window-no-drag`, so any button
 placed inside it — the Update affordance, quota Retry, Settings — is excluded from dragging by

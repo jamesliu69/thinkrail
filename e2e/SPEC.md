@@ -325,11 +325,12 @@ reduced motion) and coexistence with
 remains a focused handler test.
 
 **Topbar chrome** (`topbar-chrome.spec.ts`) proves the web side of the desktop title-bar contract without a
-desktop: it injects the three host-published CSS properties (`--window-chrome-inset-left|right`,
-`--window-chrome-drag-region`) from the test and asserts spacer widths, logo/action-cluster offsets, an
-unchanged 40px workbench origin, the header's resolved `-webkit-app-region`, and that Update, quota Retry
-and Settings all live inside the `no-drag` action cluster. In a plain browser the properties are unset, so
-the first scenario pins the zero-inset, `no-drag` baseline and the theme-token header colour.
+desktop: it injects the two host-published CSS properties (`--window-chrome-inset-left|right`) and
+`data-window-chrome-drag` attribute from the test and asserts spacer widths, logo/action-cluster offsets,
+an unchanged 40px workbench origin, the header's resolved `-webkit-app-region`, a matching literal `drag`
+rule, and that Update, quota Retry and Settings all live inside the `no-drag` action cluster. In a plain
+browser the properties and attribute are unset, so the first scenario pins the zero-inset, `no-drag`
+baseline and the theme-token header colour.
 
 Workbench scenarios exercise the normalized frontend-local frame rather than only the pure model: frame
 geometry/tool placement survives workspace switches while resource tabs and attention differ; closing a final

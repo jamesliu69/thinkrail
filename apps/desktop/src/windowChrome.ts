@@ -27,7 +27,7 @@ export const INITIAL_WINDOW_CHROME_GLOBAL = "__THINKRAIL_INITIAL_WINDOW_CHROME__
 export const NATIVE_WINDOW_CONTROLS_GLOBAL = "__THINKRAIL_NATIVE_WINDOW_CONTROLS__";
 const WINDOW_CHROME_INSET_LEFT_PROPERTY = "--window-chrome-inset-left";
 const WINDOW_CHROME_INSET_RIGHT_PROPERTY = "--window-chrome-inset-right";
-const WINDOW_CHROME_DRAG_REGION_PROPERTY = "--window-chrome-drag-region";
+const WINDOW_CHROME_DRAG_ATTRIBUTE = "data-window-chrome-drag"; // 根節點上的原生標題列拖曳開關。
 export const MAX_WINDOW_CHROME_INSET = 512;
 
 const NO_INSETS: WindowChromeGeometry = { insetLeft: 0, insetRight: 0 };
@@ -115,18 +115,22 @@ export function readWindowChromeFlag(
 	return typeof value === "boolean" ? value : null;
 }
 
+/** 將最新視窗幾何與拖曳狀態寫入根節點；根節點尚未建立時保留狀態供 `flush` 套用。 */
 export function createWindowChromeStyleWriter(
-	getStyle: () => Pick<CSSStyleDeclaration, "setProperty"> | null,
+	getRoot: () => {
+		style: Pick<CSSStyleDeclaration, "setProperty">;
+		toggleAttribute(name: string, force?: boolean): boolean;
+	} | null,
 ): { update(payload: unknown): void; flush(): void } {
 	let geometry: WindowChromeGeometry | undefined;
 	let dragRegion: boolean | undefined;
 	const flush = () => {
-		const style = getStyle();
-		if (!style || !geometry) return;
-		style.setProperty(WINDOW_CHROME_INSET_LEFT_PROPERTY, `${geometry.insetLeft}px`);
-		style.setProperty(WINDOW_CHROME_INSET_RIGHT_PROPERTY, `${geometry.insetRight}px`);
+		const root = getRoot();
+		if (!root || !geometry) return;
+		root.style.setProperty(WINDOW_CHROME_INSET_LEFT_PROPERTY, `${geometry.insetLeft}px`);
+		root.style.setProperty(WINDOW_CHROME_INSET_RIGHT_PROPERTY, `${geometry.insetRight}px`);
 		if (dragRegion !== undefined) {
-			style.setProperty(WINDOW_CHROME_DRAG_REGION_PROPERTY, dragRegion ? "drag" : "no-drag");
+			root.toggleAttribute(WINDOW_CHROME_DRAG_ATTRIBUTE, dragRegion);
 		}
 	};
 	return {
