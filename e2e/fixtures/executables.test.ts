@@ -2,10 +2,16 @@ import { expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
-import { hermeticE2ePath, writeHermeticGitProxy } from "./executables";
+import { delimiter, dirname, join } from "node:path";
+import { hermeticE2ePath, resolveBunExecutable } from "./executables";
 
 const windowsOnly = test.skipIf(process.platform !== "win32");
+/** 從 runner PATH 找出 where，供隔離 PATH 的測試使用。 */
+const whereExecutable =
+	(process.env.PATH ?? "")
+		.split(delimiter)
+		.map((directory) => join(directory, "where.exe"))
+		.find(existsSync) ?? "where.exe";
 
 /** 為子程序複製環境並替換 PATH，避免測試改動目前程序的環境。 */
 function envWithPath(path: string): NodeJS.ProcessEnv {
@@ -19,7 +25,6 @@ function envWithPath(path: string): NodeJS.ProcessEnv {
 windowsOnly("hermetic Windows E2E PATH resolves Git but not pi", () => {
 	const fakeBinDir = mkdtempSync(join(tmpdir(), "thinkrail-e2e-path-"));
 	try {
-		writeHermeticGitProxy(fakeBinDir);
 		const path = hermeticE2ePath(fakeBinDir);
 		expect(path.split(delimiter)[0]).toBe(fakeBinDir);
 		const env = envWithPath(path);
@@ -45,18 +50,22 @@ windowsOnly("hermetic Windows E2E PATH resolves Git but not pi", () => {
 		expect(root.error).toBeUndefined();
 		expect(root.status).toBe(0);
 
-		const central = spawnSync("where.exe", ["central"], {
+		const central = spawnSync(whereExecutable, ["central"], {
 			env,
 			encoding: "utf8",
 			windowsHide: true,
 		});
-		const editor = spawnSync("where.exe", ["code"], { env, encoding: "utf8", windowsHide: true });
-		const jetbrains = spawnSync("where.exe", ["idea"], {
+		const editor = spawnSync(whereExecutable, ["code"], {
 			env,
 			encoding: "utf8",
 			windowsHide: true,
 		});
-		const gitGui = spawnSync("where.exe", ["git-gui"], {
+		const jetbrains = spawnSync(whereExecutable, ["idea"], {
+			env,
+			encoding: "utf8",
+			windowsHide: true,
+		});
+		const gitGui = spawnSync(whereExecutable, ["git-gui"], {
 			env,
 			encoding: "utf8",
 			windowsHide: true,
@@ -80,7 +89,8 @@ windowsOnly("hermetic Windows E2E PATH does not expose the runner's Git director
 		expect(gitDirectory).toBeDefined();
 		if (!gitDirectory) throw new Error("Git for Windows must be available on the runner PATH");
 
-		expect(hermeticE2ePath(tempDir, envWithPath(gitDirectory)).split(delimiter)).not.toContain(
+		const sourcePath = [gitDirectory, dirname(resolveBunExecutable())].join(delimiter);
+		expect(hermeticE2ePath(tempDir, envWithPath(sourcePath)).split(delimiter)).not.toContain(
 			gitDirectory,
 		);
 	} finally {
@@ -97,15 +107,19 @@ windowsOnly("hermetic Windows E2E PATH does not expose Central or editor executa
 		writeFileSync(join(appDir, "code.exe"), "not launched");
 		writeFileSync(join(appDir, "idea.exe"), "not launched");
 
-		const path = hermeticE2ePath(tempDir, envWithPath(appDir));
+		const path = hermeticE2ePath(tempDir, envWithPath([appDir, process.env.PATH].join(delimiter)));
 		const env = envWithPath(path);
-		const central = spawnSync("where.exe", ["central"], {
+		const central = spawnSync(whereExecutable, ["central"], {
 			env,
 			encoding: "utf8",
 			windowsHide: true,
 		});
-		const editor = spawnSync("where.exe", ["code"], { env, encoding: "utf8", windowsHide: true });
-		const jetbrains = spawnSync("where.exe", ["idea"], {
+		const editor = spawnSync(whereExecutable, ["code"], {
+			env,
+			encoding: "utf8",
+			windowsHide: true,
+		});
+		const jetbrains = spawnSync(whereExecutable, ["idea"], {
 			env,
 			encoding: "utf8",
 			windowsHide: true,
@@ -116,7 +130,7 @@ windowsOnly("hermetic Windows E2E PATH does not expose Central or editor executa
 	}
 });
 
-windowsOnly("writeHermeticGitProxy runs under Node like Playwright globalSetup", () => {
+windowsOnly("hermeticE2ePath runs under Node like Playwright", () => {
 	const fakeBinDir = mkdtempSync(join(tmpdir(), "thinkrail-e2e-node-git-"));
 	try {
 		const nodeExecutable = (process.env.PATH ?? "")
@@ -127,14 +141,15 @@ windowsOnly("writeHermeticGitProxy runs under Node like Playwright globalSetup",
 		if (!nodeExecutable) throw new Error("Node.js must be available on the runner PATH");
 
 		const sourceUrl = new URL("./executables.ts", import.meta.url).href;
-		const script = `import { writeHermeticGitProxy } from ${JSON.stringify(sourceUrl)}; writeHermeticGitProxy(${JSON.stringify(fakeBinDir)});`;
+		const script = `import { hermeticE2ePath } from ${JSON.stringify(sourceUrl)}; process.stdout.write(hermeticE2ePath(${JSON.stringify(fakeBinDir)}));`;
 		const result = spawnSync(nodeExecutable, ["--input-type=module", "--eval", script], {
 			encoding: "utf8",
 			windowsHide: true,
 		});
 		expect(result.error).toBeUndefined();
 		expect(result.status).toBe(0);
-		expect(existsSync(join(fakeBinDir, "git.exe"))).toBe(true);
+		const proxyDir = result.stdout.split(delimiter)[1];
+		expect(proxyDir && existsSync(join(proxyDir, "git.exe"))).toBe(true);
 	} finally {
 		rmSync(fakeBinDir, { recursive: true, force: true });
 	}
