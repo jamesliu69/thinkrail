@@ -80,6 +80,24 @@ test("a local language file is listed, selectable, live-reloaded, and survives d
 	await expect(page.locator("html")).toHaveAttribute("lang", "de");
 });
 
+test("the bundled Traditional Chinese language switches the interface and survives reload", async ({
+	page,
+}) => {
+	await openFixtureProject(page);
+	const section = await openLanguageSettings(page);
+
+	const zhTW = section.getByTestId("language-zh-TW");
+	await expect(zhTW).toContainText("中文（台灣）");
+	await zhTW.click();
+	await expect(zhTW).toHaveAttribute("data-active", "true");
+	await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
+	await expect(page.getByTestId("settings-nav-language")).toContainText("語言");
+
+	await page.reload();
+	await openLanguageSettings(page);
+	await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
+});
+
 test("switching language re-renders cached labels, markup strings and a mounted editor's controls, including live catalog edits", async ({
 	page,
 }) => {

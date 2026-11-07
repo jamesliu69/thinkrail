@@ -71,6 +71,12 @@ test("a selected language whose file is gone is listed as missing and renders En
 	expect(languageOptions("fr", snapshot).some((option) => option.kind === "missing")).toBe(false);
 });
 
+test("system matches the bundled Traditional Chinese script before English", () => {
+	expect(effectiveLocale("system", null, ["zh-TW"])).toBe("zh-TW");
+	expect(effectiveLocale("system", null, ["zh-Hant-TW", "en"])).toBe("zh-TW");
+	expect(effectiveLocale("system", null, ["zh-CN"])).toBe("zh-CN");
+});
+
 test("system follows the browser languages over available catalogs", () => {
 	expect(effectiveLocale("system", snapshot, ["eo-001", "en"])).toBe("eo");
 	expect(effectiveLocale("system", null, ["eo-001"])).toBe("en");

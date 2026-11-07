@@ -155,6 +155,13 @@ describe("validateCatalog hardening", () => {
 	});
 });
 
+test("the bundled Traditional Chinese catalog passes its own validation", () => {
+	expect(BUNDLED_LOCALES).toContain("zh-TW");
+	const zhTW = bundledCatalog("zh-TW");
+	expect(zhTW && Object.keys(zhTW).length).toBe(Object.keys(EN).length);
+	expect(languageName("zh-TW")).toBe("中文（台灣）");
+});
+
 test("the bundled English catalog passes its own validation", () => {
 	const result = validateCatalog(EN);
 	expect(result.ok && Object.keys(result.strings).length).toBe(Object.keys(EN).length);

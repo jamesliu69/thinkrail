@@ -95,6 +95,15 @@ test("an attributed tag from a local file never reaches <T>: the code-owned href
 	expect(markup).not.toContain("attacker");
 });
 
+test("the bundled Traditional Chinese catalog renders the interface", () => {
+	applyLocale("zh-TW", {});
+	expect(t("desktop.menu.edit")).toBe("編輯");
+	expect([1, 4].map((count) => t("tools.read.firstLines", { count }))).toEqual([
+		"前 1 行",
+		"前 4 行",
+	]);
+});
+
 test("resolution walks exactly tag → base → English, never an unlisted script fallback", () => {
 	applyLocale("zh-Hant-TW", {
 		"zh-Hant": { "desktop.menu.edit": "編輯 (Hant)" },
